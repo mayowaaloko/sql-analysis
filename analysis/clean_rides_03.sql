@@ -84,3 +84,6 @@ UNION ALL
 SELECT 'Average total revenue',
     ROUND(AVG(total_revenue)::numeric, 2)
 FROM v_clean_rides;
+
+
+SELECT COUNT(*) as expected_fact_rows FROM vw_rides_fact;

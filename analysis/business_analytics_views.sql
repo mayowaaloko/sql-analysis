@@ -19,6 +19,8 @@ SELECT
     SUM(tolls) as total_tolls
 FROM v_clean_rides;
 
+SELECT *
+FROM vw_q1_total_revenue;
 
 
 -- Q2: What's the month-over-month revenue growth?
@@ -43,6 +45,9 @@ SELECT
     ) as growth_percentage
 FROM monthly_revenue
 ORDER BY month;
+
+SELECT *
+FROM vw_q2_monthly_growth;
 -- Shows month-by-month revenue with % growth from previous month
 
 
@@ -58,6 +63,9 @@ SELECT
 FROM v_clean_rides
 GROUP BY service_name
 ORDER BY total_revenue DESC;
+
+SELECT *
+FROM vw_q3_service_revenue;
 -- Shows Uber vs Lyft total revenue and market share
 
 
@@ -71,6 +79,9 @@ SELECT
 FROM v_clean_rides
 GROUP BY DATE(pickup_datetime)
 ORDER BY date;
+
+SELECT *
+FROM vw_q4_revenue_trend;
 -- Daily revenue trend - use this for trend line charts
 
 
@@ -89,6 +100,9 @@ SELECT
     MIN(trip_miles) as shortest_trip,
     MAX(trip_miles) as longest_trip
 FROM v_clean_rides;
+
+SELECT *
+FROM vw_q5_trip_metrics;
 -- Overall trip efficiency metrics
 
 
@@ -108,6 +122,8 @@ GROUP BY
     EXTRACT(HOUR FROM pickup_datetime)
 ORDER BY day_of_week, hour_of_day;
 
+SELECT *
+FROM vw_q6_demand_patterns;
 
 
 -- Q7: How many rides per driver on average?
@@ -127,6 +143,9 @@ SELECT
     MIN(trips_per_driver) as min_trips,
     MAX(trips_per_driver) as max_trips
 FROM driver_stats;
+
+SELECT *
+FROM vw_q7_driver_activity;
 -- Driver utilization summary
 
 
@@ -138,6 +157,9 @@ SELECT
     ROUND(AVG(base_passenger_fare / NULLIF(trip_miles, 0))::numeric, 2) as avg_fare_per_mile_by_trip
 FROM v_clean_rides
 WHERE trip_miles > 0;
+
+SELECT *
+FROM vw_q8_fare_per_mile;
 -- Pricing efficiency metric
 
 
@@ -159,6 +181,9 @@ JOIN dim_zones z ON r.pickup_location_id = z.location_id
 GROUP BY z.zone, z.borough
 ORDER BY total_revenue DESC
 LIMIT 50;
+
+SELECT *
+FROM vw_q9_top_pickup_zones;
 -- Top 50 zones by revenue for map visualization
 
 
@@ -194,6 +219,9 @@ JOIN dim_zones z ON f.pickup_location_id = z.location_id
 WHERE f.jan_revenue IS NOT NULL AND f.june_revenue IS NOT NULL
 ORDER BY growth_percentage DESC
 LIMIT 20;
+
+SELECT *
+FROM vw_q10_zone_growth;
 -- Top 20 fastest growing zones (Jan to June)
 
 
@@ -212,6 +240,9 @@ JOIN dim_zones dz ON r.dropoff_location_id = dz.location_id
 GROUP BY pz.zone, dz.zone
 ORDER BY trip_count DESC
 LIMIT 100;
+
+SELECT *
+FROM vw_q11_top_routes;
 -- Top 100 most popular routes
 
 
@@ -253,68 +284,66 @@ ORDER BY
         ELSE 2
     END,
     avg_fare DESC;
+
+SELECT *
+FROM vw_q12_underserved_zones;
 -- Identifies zones with high fares but low demand (expansion opportunities)
 
 
--- ----------------------------------------------------------------------------
--- DRIVER PERFORMANCE QUESTIONS (13-15)
--- ----------------------------------------------------------------------------
-
--- Q13: How many active drivers per month?
-CREATE OR REPLACE VIEW vw_q13_monthly_driver_count AS
+-------------------------------------------------------------------------
+-- Q13: Platform Market Share (Uber vs Lyft)
+CREATE OR REPLACE VIEW vw_q13_platform_market_share AS
 SELECT 
     TO_CHAR(DATE_TRUNC('month', pickup_datetime), 'YYYY-MM') as month,
-    COUNT(DISTINCT dispatching_base_num) as active_drivers,
+    service_name,
     COUNT(*) as total_trips,
-    ROUND((COUNT(*) / NULLIF(COUNT(DISTINCT dispatching_base_num), 0))::numeric, 2) as avg_trips_per_driver
+    SUM(total_revenue) as monthly_revenue,
+    ROUND(AVG(base_passenger_fare)::numeric, 2) as avg_fare
 FROM v_clean_rides
-WHERE dispatching_base_num IS NOT NULL
-GROUP BY DATE_TRUNC('month', pickup_datetime)
-ORDER BY month;
--- Monthly driver count and productivity
+GROUP BY 1, 2
+ORDER BY 1, 3 DESC;
+
+SELECT *
+FROM vw_q13_platform_market_share;
 
 
--- Q14: What's driver retention (active in Jan vs June)?
-CREATE OR REPLACE VIEW vw_q14_driver_retention AS
-WITH jan_drivers AS (
-    SELECT DISTINCT dispatching_base_num
+-- Q14: High-Value Trip Retention (Premium vs Standard)
+-- Checks how many "Big Ticket" rides ($50+) happen in Jan vs June
+CREATE OR REPLACE VIEW vw_q14_premium_trip_retention AS
+WITH jan_high_value AS (
+    SELECT COUNT(*) as jan_count
     FROM v_clean_rides
     WHERE DATE_TRUNC('month', pickup_datetime) = '2025-01-01'
-    AND dispatching_base_num IS NOT NULL
+    AND total_revenue >= 50
 ),
-june_drivers AS (
-    SELECT DISTINCT dispatching_base_num
+june_high_value AS (
+    SELECT COUNT(*) as june_count
     FROM v_clean_rides
     WHERE DATE_TRUNC('month', pickup_datetime) = '2025-06-01'
-    AND dispatching_base_num IS NOT NULL
+    AND total_revenue >= 50
 )
 SELECT 
-    (SELECT COUNT(*) FROM jan_drivers) as jan_drivers,
-    (SELECT COUNT(*) FROM june_drivers) as june_drivers,
-    (SELECT COUNT(*) FROM jan_drivers WHERE dispatching_base_num IN (SELECT dispatching_base_num FROM june_drivers)) as retained_drivers,
-    ROUND(
-        ((SELECT COUNT(*) FROM jan_drivers WHERE dispatching_base_num IN (SELECT dispatching_base_num FROM june_drivers))::numeric / 
-         NULLIF((SELECT COUNT(*) FROM jan_drivers), 0) * 100)::numeric, 
-        2
-    ) as retention_rate_pct;
--- Driver retention from January to June
+    jan_count as high_value_trips_jan,
+    june_count as high_value_trips_june,
+    ROUND(((june_count::numeric - jan_count) / NULLIF(jan_count, 0) * 100), 2) as growth_pct
+FROM jan_high_value, june_high_value;
+
+SELECT *
+FROM vw_q14_premium_trip_retention;
 
 
--- Q15: What's revenue per driver?
-CREATE OR REPLACE VIEW vw_q15_revenue_per_driver AS
+-- Q15: Service Efficiency (Revenue per Minute/Mile)
+CREATE OR REPLACE VIEW vw_q15_service_efficiency AS
 SELECT 
-    dispatching_base_num as driver_id,
-    COUNT(*) as total_trips,
-    SUM(total_revenue) as total_revenue,
-    ROUND(AVG(base_passenger_fare)::numeric, 2) as avg_fare,
-    SUM(trip_miles) as total_miles,
-    SUM(trip_time) / 3600 as total_hours
+    service_name,
+    ROUND((SUM(total_revenue) / NULLIF(SUM(trip_miles), 0))::numeric, 2) as rev_per_mile,
+    ROUND((SUM(total_revenue) / NULLIF(SUM(trip_time / 60.0), 0))::numeric, 2) as rev_per_minute,
+    ROUND((AVG(tips / NULLIF(base_passenger_fare, 0)) * 100)::numeric, 2) as avg_tip_percentage
 FROM v_clean_rides
-WHERE dispatching_base_num IS NOT NULL
-GROUP BY dispatching_base_num
-ORDER BY total_revenue DESC
-LIMIT 100;
--- Top 100 drivers by revenue
+GROUP BY service_name;
+
+SELECT *
+FROM vw_q15_service_efficiency;
 
 
 -- ============================================================================
