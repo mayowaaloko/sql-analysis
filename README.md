@@ -11,7 +11,7 @@
 
 ## 📊 Executive Dashboard
 
-![NYC Rideshare Dashboard](./images/dashboard_screenshot.png)
+![NYC Rideshare Dashboard](./images/dashboard_screenshot.jpg)
 *Interactive Power BI dashboard showing revenue trends, market share, and geographic performance*
 
 > **Note:** Full interactive dashboard available in `rideshare dashboard.pdf`
@@ -356,3 +356,4 @@ This project is licensed under the MIT License.
 
 - **Data Source:** NYC Taxi & Limousine Commission (TLC) Open Data Portal
 - **Tools:** PostgreSQL, Python, Power BI
+
