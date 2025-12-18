@@ -86,4 +86,140 @@ SELECT 'Average total revenue',
 FROM v_clean_rides;
 
 
-SELECT COUNT(*) as expected_fact_rows FROM vw_rides_fact;
+
+
+
+
+
+CREATE TABLE pbi_master_fact AS
+SELECT 
+    DATE(pickup_datetime) as ride_date,
+    EXTRACT(DOW FROM pickup_datetime) as day_of_week,
+    EXTRACT(HOUR FROM pickup_datetime) as hour_of_day,
+    service_name,
+    pickup_location_id,
+    dropoff_location_id,
+    'Short (<2mi)'::text as distance_category,
+    0::bigint as total_trips,
+    0::numeric as total_revenue,
+    0::numeric as total_base_fare,
+    0::numeric as total_tips,
+    0::numeric as total_tolls,
+    0::numeric as total_congestion,
+    0::numeric as total_airport_fees,
+    0::numeric as total_miles,
+    0::numeric as total_minutes,
+    0::numeric as avg_fare,
+    0::numeric as avg_distance,
+    0::numeric as avg_duration,
+    0::bigint as shared_requested,
+    0::bigint as shared_matched,
+    0::bigint as wav_requested,
+    0::bigint as wav_matched
+FROM v_clean_rides LIMIT 0;
+
+
+
+INSERT INTO pbi_master_fact
+SELECT 
+    DATE(pickup_datetime), EXTRACT(DOW FROM pickup_datetime), EXTRACT(HOUR FROM pickup_datetime),
+    service_name, pickup_location_id, dropoff_location_id,
+    CASE WHEN trip_miles < 2 THEN 'Short (<2mi)' WHEN trip_miles BETWEEN 2 AND 5 THEN 'Medium (2-5mi)' ELSE 'Long (>5mi)' END,
+    COUNT(*), SUM(total_revenue), SUM(base_passenger_fare), SUM(tips), SUM(tolls), SUM(congestion_surcharge), SUM(airport_fee), SUM(trip_miles), SUM(trip_time / 60.0),
+    ROUND(AVG(base_passenger_fare)::numeric, 2), ROUND(AVG(trip_miles)::numeric, 2), ROUND(AVG(trip_time / 60.0)::numeric, 2),
+    SUM(CASE WHEN shared_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN shared_match_flag = 'Y' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN wav_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN wav_match_flag = 'Y' THEN 1 ELSE 0 END)
+FROM v_clean_rides
+WHERE pickup_datetime >= '2025-01-01' AND pickup_datetime < '2025-02-01'
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+
+
+INSERT INTO pbi_master_fact
+SELECT 
+    DATE(pickup_datetime), EXTRACT(DOW FROM pickup_datetime), EXTRACT(HOUR FROM pickup_datetime),
+    service_name, pickup_location_id, dropoff_location_id,
+    CASE WHEN trip_miles < 2 THEN 'Short (<2mi)' WHEN trip_miles BETWEEN 2 AND 5 THEN 'Medium (2-5mi)' ELSE 'Long (>5mi)' END,
+    COUNT(*), SUM(total_revenue), SUM(base_passenger_fare), SUM(tips), SUM(tolls), SUM(congestion_surcharge), SUM(airport_fee), SUM(trip_miles), SUM(trip_time / 60.0),
+    ROUND(AVG(base_passenger_fare)::numeric, 2), ROUND(AVG(trip_miles)::numeric, 2), ROUND(AVG(trip_time / 60.0)::numeric, 2),
+    SUM(CASE WHEN shared_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN shared_match_flag = 'Y' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN wav_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN wav_match_flag = 'Y' THEN 1 ELSE 0 END)
+FROM v_clean_rides
+WHERE pickup_datetime >= '2025-02-01' AND pickup_datetime < '2025-03-01'
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+
+
+
+INSERT INTO pbi_master_fact
+SELECT 
+    DATE(pickup_datetime), EXTRACT(DOW FROM pickup_datetime), EXTRACT(HOUR FROM pickup_datetime),
+    service_name, pickup_location_id, dropoff_location_id,
+    CASE WHEN trip_miles < 2 THEN 'Short (<2mi)' WHEN trip_miles BETWEEN 2 AND 5 THEN 'Medium (2-5mi)' ELSE 'Long (>5mi)' END,
+    COUNT(*), SUM(total_revenue), SUM(base_passenger_fare), SUM(tips), SUM(tolls), SUM(congestion_surcharge), SUM(airport_fee), SUM(trip_miles), SUM(trip_time / 60.0),
+    ROUND(AVG(base_passenger_fare)::numeric, 2), ROUND(AVG(trip_miles)::numeric, 2), ROUND(AVG(trip_time / 60.0)::numeric, 2),
+    SUM(CASE WHEN shared_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN shared_match_flag = 'Y' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN wav_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN wav_match_flag = 'Y' THEN 1 ELSE 0 END)
+FROM v_clean_rides
+WHERE pickup_datetime >= '2025-03-01' AND pickup_datetime < '2025-04-01'
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+
+
+
+INSERT INTO pbi_master_fact
+SELECT 
+    DATE(pickup_datetime), EXTRACT(DOW FROM pickup_datetime), EXTRACT(HOUR FROM pickup_datetime),
+    service_name, pickup_location_id, dropoff_location_id,
+    CASE WHEN trip_miles < 2 THEN 'Short (<2mi)' WHEN trip_miles BETWEEN 2 AND 5 THEN 'Medium (2-5mi)' ELSE 'Long (>5mi)' END,
+    COUNT(*), SUM(total_revenue), SUM(base_passenger_fare), SUM(tips), SUM(tolls), SUM(congestion_surcharge), SUM(airport_fee), SUM(trip_miles), SUM(trip_time / 60.0),
+    ROUND(AVG(base_passenger_fare)::numeric, 2), ROUND(AVG(trip_miles)::numeric, 2), ROUND(AVG(trip_time / 60.0)::numeric, 2),
+    SUM(CASE WHEN shared_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN shared_match_flag = 'Y' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN wav_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN wav_match_flag = 'Y' THEN 1 ELSE 0 END)
+FROM v_clean_rides
+WHERE pickup_datetime >= '2025-04-01' AND pickup_datetime < '2025-05-01'
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+
+
+INSERT INTO pbi_master_fact
+SELECT 
+    DATE(pickup_datetime), EXTRACT(DOW FROM pickup_datetime), EXTRACT(HOUR FROM pickup_datetime),
+    service_name, pickup_location_id, dropoff_location_id,
+    CASE WHEN trip_miles < 2 THEN 'Short (<2mi)' WHEN trip_miles BETWEEN 2 AND 5 THEN 'Medium (2-5mi)' ELSE 'Long (>5mi)' END,
+    COUNT(*), SUM(total_revenue), SUM(base_passenger_fare), SUM(tips), SUM(tolls), SUM(congestion_surcharge), SUM(airport_fee), SUM(trip_miles), SUM(trip_time / 60.0),
+    ROUND(AVG(base_passenger_fare)::numeric, 2), ROUND(AVG(trip_miles)::numeric, 2), ROUND(AVG(trip_time / 60.0)::numeric, 2),
+    SUM(CASE WHEN shared_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN shared_match_flag = 'Y' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN wav_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN wav_match_flag = 'Y' THEN 1 ELSE 0 END)
+FROM v_clean_rides
+WHERE pickup_datetime >= '2025-05-01' AND pickup_datetime < '2025-06-01'
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+
+
+
+INSERT INTO pbi_master_fact
+SELECT 
+    DATE(pickup_datetime), EXTRACT(DOW FROM pickup_datetime), EXTRACT(HOUR FROM pickup_datetime),
+    service_name, pickup_location_id, dropoff_location_id,
+    CASE WHEN trip_miles < 2 THEN 'Short (<2mi)' WHEN trip_miles BETWEEN 2 AND 5 THEN 'Medium (2-5mi)' ELSE 'Long (>5mi)' END,
+    COUNT(*), SUM(total_revenue), SUM(base_passenger_fare), SUM(tips), SUM(tolls), SUM(congestion_surcharge), SUM(airport_fee), SUM(trip_miles), SUM(trip_time / 60.0),
+    ROUND(AVG(base_passenger_fare)::numeric, 2), ROUND(AVG(trip_miles)::numeric, 2), ROUND(AVG(trip_time / 60.0)::numeric, 2),
+    SUM(CASE WHEN shared_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN shared_match_flag = 'Y' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN wav_request_flag = 'Y' THEN 1 ELSE 0 END), SUM(CASE WHEN wav_match_flag = 'Y' THEN 1 ELSE 0 END)
+FROM v_clean_rides
+WHERE pickup_datetime >= '2025-06-01' AND pickup_datetime < '2025-07-01'
+GROUP BY 1, 2, 3, 4, 5, 6, 7;
+
+
+
+CREATE INDEX idx_pbi_date ON pbi_master_fact(ride_date);
+CREATE INDEX idx_pbi_service ON pbi_master_fact(service_name);
+CREATE INDEX idx_pbi_pickup ON pbi_master_fact(pickup_location_id);
+CREATE INDEX idx_pbi_dropoff ON pbi_master_fact(dropoff_location_id);
+CREATE INDEX idx_pbi_day_of_week ON pbi_master_fact(day_of_week);
+CREATE INDEX idx_pbi_hour ON pbi_master_fact(hour_of_day);
+
+
+SELECT 
+    TO_CHAR(ride_date, 'YYYY-MM') as month, 
+    COUNT(*) as aggregated_rows, 
+    SUM(total_trips) as actual_rides 
+FROM pbi_master_fact 
+GROUP BY 1 
+ORDER BY 1;
